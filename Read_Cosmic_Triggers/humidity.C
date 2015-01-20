@@ -1,0 +1,32 @@
+// Try to plot hit rate per minute vs humidity
+{
+  TProfile *h = new TProfile("humidity","Hit Rate per Minute vs Humidity;Relative Humidity (percent);Hit Rate per Minute",30,20,35,50,150);
+  int N=0;
+
+  int evtnum;
+  unsigned int tim;
+  float temp, humidity;
+  
+  t->SetBranchAddress("evtnum",&evtnum);
+  t->SetBranchAddress("time",&tim);
+  t->SetBranchAddress("temp",&temp);
+  t->SetBranchAddress("humidity",&humidity);
+
+  t->GetEntry(0);
+  unsigned int t0 = tim;
+  float hum=0;
+  for (int i=1; i<t->GetEntries(); ++i) {
+    t->GetEntry(i);
+    if (tim-t0<60) {
+      ++N;
+      hum += humidity;
+    }
+    else {
+      hum /= N;
+      h->Fill(hum, N);
+      N = 0;
+      hum = 0;
+      t0 = tim;
+    }
+  }
+}

@@ -1,0 +1,24 @@
+// Simple unnamed macro that reads the information from the run.txt file and makes a TTree
+#include "TTree.h"
+#include <iostream>
+#include <fstream>
+
+void make_ttree(TTree *t ){
+  std::ifstream f("run_2Oct09-5Oct09.txt");
+  std::string dum;
+  int evtnum;
+  unsigned int time;
+  float temp, humidity;
+
+  //  TTree *t = new TTree("t","Cosmic triggers from Arduino");
+  t->Branch("evtnum",&evtnum,"evtnum/I");
+  t->Branch("time",&time,"time/i");
+  t->Branch("temp",&temp,"temp/F");
+  t->Branch("humidity",&humidity,"humidity/F");
+
+  while (f >> dum >> dum >> dum >> dum >> evtnum >> dum >> time >> temp >> dum >> humidity >> dum) {
+    std::cout << "Filling event number " << evtnum << std::endl;
+    t->Fill();
+  }
+
+}
