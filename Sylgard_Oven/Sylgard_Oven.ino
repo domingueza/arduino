@@ -105,7 +105,6 @@
 	#include <max6675.h>
 #endif
 #include <PID_v1.h>
-#include <PID_AutoTune_v0.h>
 
 // ***** TYPE DEFINITIONS *****
 typedef enum REFLOW_STATE
@@ -118,8 +117,7 @@ typedef enum REFLOW_STATE
   REFLOW_STATE_COOL,
   REFLOW_STATE_COMPLETE,
 	REFLOW_STATE_TOO_HOT,
-  REFLOW_STATE_ERROR,
-  REFLOW_STATE_TUNING
+  REFLOW_STATE_ERROR
 } reflowState_t;
 
 typedef enum REFLOW_STATUS
@@ -180,8 +178,7 @@ const char* lcdMessagesReflowStatus[] = {
   "Cool",
   "Complete",
 	"Wait,hot",
-  "Error",
-  "Tuning"
+  "Error"
 };
 
 // ***** DEGREE SYMBOL FOR LCD *****
@@ -248,19 +245,9 @@ switch_t switchStatus;
 // Seconds timer
 int timerSeconds;
 
-// Autotuning parameters
-double outputStart=5;
-double aTuneStep=50, aTuneNoise=1, aTuneStartValue=100;
-unsigned int aTuneLookBack=20;
-// Manually set this tuning to true to do autotuning
-boolean tuning = true;
-unsigned long serialTime;
-byte ATuneModeRemember=2;
-
 // Specify PID control interface
 PID sylgardOvenPID(&input, &output, &setpoint, kp, ki, kd, DIRECT);
-// Specify PID Autotune interface
-PID_ATune aTune(&input, &output);
+
 // Specify LCD interface
 LiquidCrystal lcd(lcdRsPin, lcdEPin, lcdD4Pin, lcdD5Pin, lcdD6Pin, lcdD7Pin);
 // Specify MAX6675 thermocouple interface
@@ -320,14 +307,6 @@ void setup()
   nextCheck = millis();
   // Initialize thermocouple reading variable
   nextRead = millis();
-
-  if(tuning)
-  {
-    tuning=false;
-    changeAutoTune();
-    tuning=true;
-  }
-  serialTime = 0;
   
 }
 
@@ -445,8 +424,7 @@ void loop()
         // Turn the PID on
         sylgardOvenPID.SetMode(AUTOMATIC);
         // Proceed to preheat stage
-        if (tuning) {reflowState = REFLOW_STATE_TUNING;}
-        else {reflowState = REFLOW_STATE_PREHEAT;}
+        reflowState = REFLOW_STATE_PREHEAT;
       }
     }
     break;
@@ -549,24 +527,6 @@ void loop()
 		}
 		break;
 
-  case REFLOW_STATE_TUNING:
-    reflowStatus = REFLOW_STATUS_ON; 
-    if(tuning)  
-    {
-      byte val = (aTune.Runtime());
-      if (val!=0)
-      {
-        tuning = false;
-      }
-      if(!tuning)
-      { //we're done, set the tuning parameters
-        kp = aTune.GetKp();
-        ki = aTune.GetKi();
-        kd = aTune.GetKd();
-        sylgardOvenPID.SetTunings(kp,ki,kd);
-        AutoTuneHelper(false);
-      }
-    }		
   case REFLOW_STATE_ERROR:
     // If thermocouple problem is still present
 		#ifdef	USE_MAX6675
@@ -679,49 +639,6 @@ void loop()
   else 
   {
     digitalWrite(ssrPin, LOW);
-  }
-}
-
-void changeAutoTune()
-{
- if(!tuning)
-  {
-    //Set the output to the desired starting frequency.
-    output=aTuneStartValue;
-    aTune.SetNoiseBand(aTuneNoise);
-    aTune.SetOutputStep(aTuneStep);
-    aTune.SetLookbackSec((int)aTuneLookBack);
-    AutoTuneHelper(true);
-    tuning = true;
-  }
-  else
-  { //cancel autotune
-    aTune.Cancel();
-    tuning = false;
-    AutoTuneHelper(false);
-  }
-}
-
-void AutoTuneHelper(boolean start)
-{
-  if(start)
-    ATuneModeRemember = sylgardOvenPID.GetMode();
-  else
-    sylgardOvenPID.SetMode(ATuneModeRemember);
-}
-
-
-void SerialSend()
-{
-  Serial.print("setpoint: ");Serial.print(setpoint); Serial.print(" ");
-  Serial.print("input: ");Serial.print(input); Serial.print(" ");
-  Serial.print("output: ");Serial.print(output); Serial.print(" ");
-  if(tuning){
-    Serial.println("tuning mode");
-  } else {
-    Serial.print("kp: ");Serial.print(sylgardOvenPID.GetKp());Serial.print(" ");
-    Serial.print("ki: ");Serial.print(sylgardOvenPID.GetKi());Serial.print(" ");
-    Serial.print("kd: ");Serial.print(sylgardOvenPID.GetKd());Serial.println();
   }
 }
 
