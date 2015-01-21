@@ -1,9 +1,11 @@
 #include <PID_v1.h>
 #include <PID_AutoTune_v0.h>
+#include <LiquidCrystal.h>
+#include <MAX31855.h>
 
 byte ATuneModeRemember=2;
-double input=80, output=50, setpoint=180;
-double kp=2,ki=0.5,kd=2;
+double input=80, output=50, setpoint=100;
+double kp=100,ki=0.025,kd=20;
 
 double kpmodel=1.5, taup=100, theta[50];
 double outputStart=5;
@@ -17,7 +19,32 @@ PID myPID(&input, &output, &setpoint,kp,ki,kd, DIRECT);
 PID_ATune aTune(&input, &output);
 
 //set to false to connect to the real world
-boolean useSimulation = true;
+boolean useSimulation = false;
+
+// Pin setup for Sylgard oven with Reflow shield
+int ssrPin = 5;
+int thermocoupleSOPin = A3;
+int thermocoupleCSPin = A2;
+int thermocoupleCLKPin = A1;
+int lcdRsPin = 7;
+int lcdEPin = 8;
+int lcdD4Pin = 9;
+int lcdD5Pin = 10;
+int lcdD6Pin = 11;
+int lcdD7Pin = 12;
+int ledRedPin = 4;
+int buzzerPin = 6;
+int switchPin = A0;
+// DEGREE SYMBOL FOR LCD
+unsigned char degree[8]  = {
+  140,146,146,140,128,128,128,128};
+// Specify LCD interface
+LiquidCrystal lcd(lcdRsPin, lcdEPin, lcdD4Pin, lcdD5Pin, lcdD6Pin, lcdD7Pin);
+// Specify MAX6675 thermocouple interface
+MAX31855 thermocouple(thermocoupleSOPin, thermocoupleCSPin, thermocoupleCLKPin);
+
+int windowSize;
+unsigned long windowStartTime;
 
 void setup()
 {
@@ -40,8 +67,40 @@ void setup()
   }
   
   serialTime = 0;
-  Serial.begin(9600);
+  Serial.begin(57600);
 
+  // SSR pin initialization to ensure oven is off
+  digitalWrite(ssrPin, LOW);
+  pinMode(ssrPin, OUTPUT);
+
+  // Buzzer pin initialization to ensure annoying buzzer is off
+  digitalWrite(buzzerPin, LOW);
+  pinMode(buzzerPin, OUTPUT);
+
+  // LED pins initialization and turn on upon start-up (active low)
+  digitalWrite(ledRedPin, LOW);
+  pinMode(ledRedPin, OUTPUT);
+
+// Start-up splash
+  digitalWrite(buzzerPin, HIGH);
+  lcd.begin(8, 2);
+  lcd.createChar(0, degree);
+  lcd.clear();
+  lcd.print("Oven");
+  lcd.setCursor(0, 1);
+  lcd.print("Autotune 0.1");
+  digitalWrite(buzzerPin, LOW);
+  delay(2500);
+  lcd.clear();
+
+  // Serial communication at 57600 bps
+  Serial.begin(57600);
+
+  // Turn off LED (active low)
+  digitalWrite(ledRedPin, HIGH);
+  
+  // Set time of start
+  windowStartTime = millis();
 }
 
 void loop()
@@ -51,7 +110,11 @@ void loop()
 
   if(!useSimulation)
   { //pull the input in from the real world
-    input = analogRead(0);
+    input = thermocouple.readThermocouple(CELSIUS);
+    lcd.print(input);
+    // Print degree Celsius symbol
+    lcd.write((uint8_t)0);
+    lcd.print("C ");
   }
   
   if(tuning)
@@ -83,7 +146,13 @@ void loop()
   }
   else
   {
-     analogWrite(0,output); 
+    if((now - windowStartTime) > windowSize)
+    { 
+      // Time to shift the Relay Window
+      windowStartTime += windowSize;
+    }
+    if(output > (now - windowStartTime)) digitalWrite(ssrPin, HIGH);
+    else digitalWrite(ssrPin, LOW);
   }
   
   //send-receive with processing if it's time
