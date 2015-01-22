@@ -43,7 +43,7 @@ LiquidCrystal lcd(lcdRsPin, lcdEPin, lcdD4Pin, lcdD5Pin, lcdD6Pin, lcdD7Pin);
 // Specify MAX6675 thermocouple interface
 MAX31855 thermocouple(thermocoupleSOPin, thermocoupleCSPin, thermocoupleCLKPin);
 
-int windowSize;
+int windowSize=2000;
 unsigned long windowStartTime;
 
 void setup()
@@ -101,6 +101,9 @@ void setup()
   
   // Set time of start
   windowStartTime = millis();
+  
+  // Setup things to use time proportioning control for solid state relay
+  myPID.SetOutputLimits(0, windowSize);
 }
 
 void loop()
