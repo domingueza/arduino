@@ -141,15 +141,16 @@ typedef enum DEBOUNCE_STATE
 } debounceState_t;
 
 // ***** CONSTANTS *****
-#define TEMPERATURE_ROOM 50
-#define TEMPERATURE_SOAK_MIN 75
-#define TEMPERATURE_SOAK_MAX 100
+#define TEMPERATURE_ROOM 40
+#define TEMPERATURE_SOAK_MIN 42
+#define TEMPERATURE_SOAK_MAX 50
 #define TEMPERATURE_REFLOW_MAX 250
 #define TEMPERATURE_COOL_MIN 50
 #define SENSOR_SAMPLING_TIME 1000
 #define SOAK_TEMPERATURE_STEP 5
 #define SOAK_MICRO_PERIOD 9000
-#define SOAK_PERIOD 600000
+// #define SOAK_PERIOD 14400000
+#define SOAK_PERIOD 3600000
 #define PREHEAT_PERIOD 120000
 #define DEBOUNCE_PERIOD_MIN 50
 
@@ -336,8 +337,8 @@ void loop()
     #endif
 		{
       // Illegal operation
-      reflowState = REFLOW_STATE_ERROR;
-      reflowStatus = REFLOW_STATUS_OFF;
+     // reflowState = REFLOW_STATE_ERROR;
+     // reflowStatus = REFLOW_STATUS_OFF;
     }
   }
 
