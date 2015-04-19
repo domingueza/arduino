@@ -141,7 +141,7 @@ typedef enum DEBOUNCE_STATE
 } debounceState_t;
 
 // ***** CONSTANTS *****
-#define TEMPERATURE_ROOM 30
+#define TEMPERATURE_ROOM 35
 #define TEMPERATURE_SOAK_MIN 38
 #define TEMPERATURE_SOAK_MAX 50
 #define TEMPERATURE_REFLOW_MAX 250
