@@ -161,8 +161,10 @@ typedef enum DEBOUNCE_STATE
 #define PID_KD_PREHEAT 20
 // ***** SOAKING STAGE *****
 #define PID_KP_SOAK 300
-#define PID_KI_SOAK 0.05
+#define PID_KI_SOAK 2
 #define PID_KD_SOAK 250
+//#define PID_KI_SOAK 0.05
+//#define PID_KD_SOAK 250
 // ***** REFLOW STAGE *****
 #define PID_KP_REFLOW 300
 #define PID_KI_REFLOW 0.05
@@ -221,7 +223,7 @@ unsigned char degree[8]  = {
 
 // ***** PID CONTROL VARIABLES *****
 double setpoint;
-double input;
+double input, previnput;
 double output;
 double kp = PID_KP_PREHEAT;
 double ki = PID_KI_PREHEAT;
@@ -309,6 +311,7 @@ void setup()
   // Initialize thermocouple reading variable
   nextRead = millis();
   
+  previnput = 0;
 }
 
 void loop()
@@ -336,10 +339,12 @@ void loop()
 				 (input == FAULT_SHORT_VCC))
     #endif
 		{
+       input = previnput;
       // Illegal operation
      // reflowState = REFLOW_STATE_ERROR;
      // reflowStatus = REFLOW_STATUS_OFF;
     }
+    previnput = input;
   }
 
   if (millis() > nextCheck)
